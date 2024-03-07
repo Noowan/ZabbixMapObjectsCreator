@@ -1,3 +1,4 @@
+import random
 import re
 from pyzabbix import ZabbixAPI
 import sys
@@ -62,7 +63,7 @@ def get_map():
     ZBX_SERVER = 'http://10.8.203.203'
     zapi = ZabbixAPI(ZBX_SERVER)
     zapi.login(api_token="2ed059cdc3b53cc0a46dc2f3f88b762495a9884ea94b0c1b3f5fdb1d06e4b2a2")
-    maps = zapi.map.get(output=['sysmapid', 'name'], selectSelements=['selementid', 'elements', 'elementtype', 'label'], sortfield='name')
+    maps = zapi.map.get(output=['sysmapid', 'name', 'height', 'width'], selectSelements=['selementid', 'elements', 'elementtype', 'label'], sortfield='name')
     select = input("Print map name which you want to edit\n")
     for map in maps:
         if re.search(select, map['name']) != None:
@@ -88,6 +89,8 @@ def update_map(items, selected_map):
         selementsdict['elementtype'] = '0'
         selementsdict['iconid_off'] = '151'
         selementsdict['label'] = '{HOST.HOST}'
+        selementsdict['x'] = str(random.randint(50, int(selected_map['width']) - 100))
+        selementsdict['y'] = str(random.randint(50, int(selected_map['height']) - 100))
         selementsdict['elements'] = []
         selementsdict['elements'].append({'hostid': hostid})
         request['selements'].append(selementsdict)
@@ -112,4 +115,4 @@ if __name__ == "__main__":
 
     result = update_map(items, selected_map)
 
-    print('STOPPED')
+    print('Finished')
