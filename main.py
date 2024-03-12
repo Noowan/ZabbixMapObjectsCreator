@@ -25,8 +25,8 @@ def get_hosts(_groupids):
 def get_items():
     final_groupids = []
     hostgroups = get_hostgroups()
-    for hostgroup in hostgroups:
-        print(hostgroup['name'])
+    #for hostgroup in hostgroups:
+        #print(hostgroup['name'])
     selected_groups = input("Print comma separated list of groups to iteract\n")
     selected_groups = selected_groups.split(",")
 
@@ -42,7 +42,7 @@ def get_items():
         print(final_groupid['name'])
     result = input("Is group list correct? Y or N\n")
     if result == 'N':
-        sys.exit()
+        return
 
     hosts = []
     groupids = ""
@@ -88,7 +88,7 @@ def update_map(items, selected_map):
         selementsdict['selementid'] = str(i+1)
         selementsdict['elementtype'] = '0'
         selementsdict['iconid_off'] = '151'
-        selementsdict['label'] = '{HOST.HOST}'
+        selementsdict['label'] = '{HOST.HOST}\n{HOST.IP}'
         selementsdict['x'] = str(random.randint(50, int(selected_map['width']) - 100))
         selementsdict['y'] = str(random.randint(50, int(selected_map['height']) - 100))
         selementsdict['elements'] = []
@@ -105,7 +105,8 @@ def update_map(items, selected_map):
 
 
 if __name__ == "__main__":
-    items = get_items()
+    while True:
+        items = get_items()
     selected_map = get_map()
 
     print(selected_map['name'])
