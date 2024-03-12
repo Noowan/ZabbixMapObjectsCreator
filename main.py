@@ -42,7 +42,7 @@ def get_items():
         print(final_groupid['name'])
     result = input("Is group list correct? Y or N\n")
     if result == 'N':
-        return
+        return False
 
     hosts = []
     groupids = ""
@@ -107,6 +107,8 @@ def update_map(items, selected_map):
 if __name__ == "__main__":
     while True:
         items = get_items()
+        if items != False:
+            break
     selected_map = get_map()
 
     print(selected_map['name'])
