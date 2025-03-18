@@ -1,26 +1,50 @@
 import random
 import re
-from pyzabbix import ZabbixAPI
 import sys
+import requests
+import os
+from dotenv import load_dotenv
 
-DEBUG = True
+HEADERS={"Content-Type": 'application/json-rpc'}
+
+load_dotenv('params.env')
+API_TOKEN = os.getenv('API_TOKEN')
+URL = os.getenv('URL')
 
 
 def get_hostgroups():
-    ZBX_SERVER = 'http://10.8.203.203'
-    zapi = ZabbixAPI(ZBX_SERVER)
-    zapi.login(api_token="2ed059cdc3b53cc0a46dc2f3f88b762495a9884ea94b0c1b3f5fdb1d06e4b2a2")
-    hostgroups = zapi.hostgroup.get(output=['groupid', 'name'], real_hosts=1)
-    return hostgroups
+    payload = {
+        "jsonrpc": "2.0",
+        "method": "hostgroup.get",
+        "params": {
+            "output": ["groupid", "name"],
+        },
+        "auth": API_TOKEN,
+        "id": 1
+    }
 
+    response = requests.post(URL, json=payload, headers=HEADERS)
+    response.raise_for_status()
+    response = response.json()
+    return response['result']
 
 def get_hosts(_groupids):
-    ZBX_SERVER = 'http://10.8.203.203'
-    zapi = ZabbixAPI(ZBX_SERVER)
-    zapi.login(api_token="2ed059cdc3b53cc0a46dc2f3f88b762495a9884ea94b0c1b3f5fdb1d06e4b2a2")
-    hosts = zapi.host.get(output=['hostid', 'host', 'name'], groupids=_groupids, real_hosts=1, selectInterfaces=['ip'])
-    return hosts
+    payload = {
+        "jsonrpc": "2.0",
+        "method": "host.get",
+        "params": {
+            "output": ["hostid", "host", "name"],
+            "groupids": _groupids,
+            "selectInterfaces": ["ip"]
+        },
+        "auth": API_TOKEN,
+        "id": 1
+    }
 
+    response = requests.post(URL, json=payload, headers=HEADERS)
+    response.raise_for_status()
+    response = response.json()
+    return response['result']
 
 def get_items():
     final_groupids = []
@@ -60,16 +84,26 @@ def get_items():
     return hosts
 
 def get_map():
-    ZBX_SERVER = 'http://10.8.203.203'
-    zapi = ZabbixAPI(ZBX_SERVER)
-    zapi.login(api_token="2ed059cdc3b53cc0a46dc2f3f88b762495a9884ea94b0c1b3f5fdb1d06e4b2a2")
-    maps = zapi.map.get(output=['sysmapid', 'name', 'height', 'width'], selectSelements=['selementid', 'elements', 'elementtype', 'label'], sortfield='name')
+    payload = {
+        "jsonrpc": "2.0",
+        "method": "map.get",
+        "params": {
+            "output": ["sysmapid", "name", "height", "width"],
+            "selectSelements": ['selementid', 'elements', 'elementtype', 'label'],
+            "sortfield": 'name'
+        },
+        "auth": API_TOKEN,
+        "id": 1
+    }
+
+    response = requests.post(URL, json=payload, headers=HEADERS)
+    response.raise_for_status()
+    response = response.json()
+    maps = response['result']
     select = input("Print map name which you want to edit\n")
     for map in maps:
         if re.search(select, map['name']) != None:
             return map
-
-
 def update_map(items, selected_map):
     hostids = []
     sysmapid = selected_map['sysmapid']
@@ -85,7 +119,7 @@ def update_map(items, selected_map):
         hostiddict = {'hostid': hostid}
         elements.append(hostiddict)
         selementsdict = {}
-        selementsdict['selementid'] = str(i+1)
+        selementsdict['selementid'] = str(i + 1)
         selementsdict['elementtype'] = '0'
         selementsdict['iconid_off'] = '151'
         selementsdict['label'] = '{HOST.HOST}\n{HOST.IP}'
@@ -94,17 +128,42 @@ def update_map(items, selected_map):
         selementsdict['elements'] = []
         selementsdict['elements'].append({'hostid': hostid})
         request['selements'].append(selementsdict)
-        i+=1
+        i += 1
 
-    ZBX_SERVER = 'http://10.8.203.203'
-    zapi = ZabbixAPI(ZBX_SERVER)
-    zapi.login(api_token="2ed059cdc3b53cc0a46dc2f3f88b762495a9884ea94b0c1b3f5fdb1d06e4b2a2")
-    zapi.do_request(method='map.update', params=request)
 
-    print()
+    payload = {
+        "jsonrpc": "2.0",
+        "method": "map.update",
+        "params": request,
+        "auth": API_TOKEN,
+        "id": 1
+    }
+
+    response = requests.post(URL, json=payload, headers=HEADERS)
+    response.raise_for_status()
+    response = response.json()
+
+def check_API_availability():
+    if API_TOKEN == None or URL == None:
+        raise ValueError("API_TOKEN or URL is not specified in .env file")
+    payload = {
+        "jsonrpc": "2.0",
+        "method": "host.get",
+        "params": {
+        "output": ["hostid", "host", "name"],
+        "selectInterfaces": ["ip"]
+        },
+        "auth": API_TOKEN,
+        "id": 1
+    }
+    response = requests.post(URL, json=payload, headers=HEADERS).json()
+    if 'error' in response:
+        raise BaseException(f"{response['error']['message']} - {response['error']['data']}")
+
 
 
 if __name__ == "__main__":
+    check_API_availability()
     while True:
         items = get_items()
         if items != False:
